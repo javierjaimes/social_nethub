@@ -1,15 +1,18 @@
 require "sinatra"
-require "rest_client"
+require "oauth2"
 require "sinatra/reloader" if development?
 
+set :raise_errors, true
+set :show_exceptions, false
+
+API_CLIENT = OAuth2::Client.new('client_id', 'client_secret', :site => 'https://api.nethub.co')
 
 get '/' do
-  "Hola mundo 2"
+  redirect "http://nethub.co"
 end
 
 get '/:id' do
-  puts params
-  "Aqui con id " + params[ :id ]
+  raise "error!"
 end
 
 
