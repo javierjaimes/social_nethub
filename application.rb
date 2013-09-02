@@ -33,7 +33,7 @@ get '/:id' do
       halt 404
     else
       client_id = data[ "data" ][ 0 ][ "client_id" ]
-      redirect_uri = "http://social.nethub.co/" + params[ :id ] + "/callback"
+      redirect_uri = "http://localhost:3000/" + params[ :id ] + "/callback"
       redirect "https://www.facebook.com/dialog/oauth?client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&scope=email,user_birthday,user_likes,user_location"
     end
 
@@ -57,20 +57,21 @@ get "/:id/callback" do
     unless !data[ "data" ].empty?
       halt 404
     end
+    
+    app_data = data[ "data" ][ 0 ]
 
-    puts 'session token'
 
     #Getting the FB token
-    client_id = data[ "data" ][ 0 ][ "client_id" ]
-    client_secret =  data[ "data" ][ 0 ][ "secret_id" ]
-    redirect_uri = "http://social.nethub.co/" + params[ :id ] + "/callback"
+    client_id = app_data[ "client_id" ]
+    client_secret =  app_data[ "secret_id" ]
+    redirect_uri = "http://localhost:3000/" + params[ :id ] + "/callback"
     code = params[ :code ]
 
     begin
-      #fb_response = RestClient.get "https://graph.facebook.com/oauth/access_token", :params => { :client_id => client_id, :redirect_uri => redirect_uri, :client_secret => client_secret, :code => code }
-      #fb_response =  CGI::parse( fb_response )
-      #fb_token = fb_response[ "access_token" ][0]
-      fb_token = 'CAAFLyNxrkcMBAM0dTfTD2TTiPT1XlJ7bXOZAbpNdZBNnVC96ymXZCfvqkfstjdXB496lhSUyfr89P7pNVe9PpMZCj82C1loDqhLDaJUZCoHj93MzFcIWd94xE4uV3mZBnnKzYFOqA89QXXZBYfZBGBQrQZACMD8JQsThpp49FHHK5faZC9HRxXPLkQAgxuZC5jlQMUZD'
+      fb_response = RestClient.get "https://graph.facebook.com/oauth/access_token", :params => { :client_id => client_id, :redirect_uri => redirect_uri, :client_secret => client_secret, :code => code }
+      fb_response =  CGI::parse( fb_response )
+      fb_token = fb_response[ "access_token" ][0]
+      #fb_token = 'CAAFLyNxrkcMBAM0dTfTD2TTiPT1XlJ7bXOZAbpNdZBNnVC96ymXZCfvqkfstjdXB496lhSUyfr89P7pNVe9PpMZCj82C1loDqhLDaJUZCoHj93MzFcIWd94xE4uV3mZBnnKzYFOqA89QXXZBYfZBGBQrQZACMD8JQsThpp49FHHK5faZC9HRxXPLkQAgxuZC5jlQMUZD'
 
       #get user information
       response = RestClient.get 'https://graph.facebook.com/me', :params => { :access_token => fb_token }, :content_type => :json, :accept => :json
@@ -94,9 +95,12 @@ get "/:id/callback" do
       end
 
       #get user likes
-      response = RestClient.get 'https://graph.facebook.com/me/likes', :params => { :access_token => fb_token }
-      user_likes = JSON.parse response
-      puts user_likes
+      #response = RestClient.get 'https://graph.facebook.com/me/likes', :params => { :access_token => fb_token }
+      #user_likes = JSON.parse response
+      #puts user_likes
+      puts 'url redirect'
+      puts app_data
+      redirect [ app_data[ "domain" ], "/", app_data[ "callback" ] ].join 
     rescue Exception => e
       halt 500
     end

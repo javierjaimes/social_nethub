@@ -59,16 +59,14 @@ describe "Application App" do
     last_response.status.should == 400
   end
 
-  it "if the birthday is not ok the app should has an error" do
-    get '/78f9370e-911a-4a88-9aad-226ef63a7533/callback?code=AQDf1TLW4cwLP7bm1IfMFNxsCiAFBwFQOgSTcna4VwBMFrEVDdRWXkcqQY0NhMhCgBYRQk9ClQ9-WtYRaAxglE_B3R7o1T9g3T12WuRws8MypHHQKWOHlYcfbPdEkidO4eZ4DmUOBT-64QbMsWLOiPSLFuiTB8kiuyoLxuf0r9Y6vfb3XBVzddrZHCtjRmK-iXPd9pCg_si2_N_xI0jz23uM1UEsaxaDzh8p1EC1pwQY9xHfXcErxQqCIJchONMoWXY3g9my-_8kWg0W-Ydn2Ae5jPMRDfq4VZTbxdPxlCTvtCRIYf9LJKm9YffQWPQ9IRU'
-    last_response.status.should == 400
-  end
+  #it "Creating the user has an error" do
+  #  get '/78f9370e-911a-4a88-9aad-226ef63a7533/callback?code=AQDf1TLW4cwLP7bm1IfMFNxsCiAFBwFQOgSTcna4VwBMFrEVDdRWXkcqQY0NhMhCgBYRQk9ClQ9-WtYRaAxglE_B3R7o1T9g3T12WuRws8MypHHQKWOHlYcfbPdEkidO4eZ4DmUOBT-64QbMsWLOiPSLFuiTB8kiuyoLxuf0r9Y6vfb3XBVzddrZHCtjRmK-iXPd9pCg_si2_N_xI0jz23uM1UEsaxaDzh8p1EC1pwQY9xHfXcErxQqCIJchONMoWXY3g9my-_8kWg0W-Ydn2Ae5jPMRDfq4VZTbxdPxlCTvtCRIYf9LJKm9YffQWPQ9IRU'
+  #  last_response.status.should == 400
+  #end
 
   it "the app callback is a valid response" do
     get '/78f9370e-911a-4a88-9aad-226ef63a7533/callback?code=AQDf1TLW4cwLP7bm1IfMFNxsCiAFBwFQOgSTcna4VwBMFrEVDdRWXkcqQY0NhMhCgBYRQk9ClQ9-WtYRaAxglE_B3R7o1T9g3T12WuRws8MypHHQKWOHlYcfbPdEkidO4eZ4DmUOBT-64QbMsWLOiPSLFuiTB8kiuyoLxuf0r9Y6vfb3XBVzddrZHCtjRmK-iXPd9pCg_si2_N_xI0jz23uM1UEsaxaDzh8p1EC1pwQY9xHfXcErxQqCIJchONMoWXY3g9my-_8kWg0W-Ydn2Ae5jPMRDfq4VZTbxdPxlCTvtCRIYf9LJKm9YffQWPQ9IRU'
     last_response.should be_redirect
-    follow_redirect!
-    last_request.url.should match /http:\/\/www.google.com/i
   end
 
 end
