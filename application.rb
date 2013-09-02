@@ -1,13 +1,20 @@
 require "json"
 require "date"
+require "mongo"
+require "bson"
 require "sinatra"
 require "sinatra/reloader" if development?
 require "oauth2"
 require "rest_client"
 
 
+
 set :raise_errors, true
 set :show_exceptions, false
+
+#set mongo connection
+mongoclient = Mongo::MongoClient.new
+db = mongoclient.db( "social_nethub" )
 
 oauth2 = OAuth2::Client.new(
   'BesuYeR65yfNWqPLwcyK',
@@ -58,24 +65,35 @@ get "/:id/callback" do
       halt 404
     end
     
-    app_data = data[ "data" ][ 0 ]
-
-
-    #Getting the FB token
-    client_id = app_data[ "client_id" ]
-    client_secret =  app_data[ "secret_id" ]
-    redirect_uri = "http://localhost:3000/" + params[ :id ] + "/callback"
-    code = params[ :code ]
 
     begin
+      #set app data
+      app_data = data[ "data" ][ 0 ]
+      
+
+      #Getting the FB token
+      client_id = app_data[ "client_id" ]
+      client_secret =  app_data[ "secret_id" ]
+      redirect_uri = "http://localhost:3000/" + params[ :id ] + "/callback"
+      code = params[ :code ]
+
       fb_response = RestClient.get "https://graph.facebook.com/oauth/access_token", :params => { :client_id => client_id, :redirect_uri => redirect_uri, :client_secret => client_secret, :code => code }
+      puts 'token response'
+      puts fb_response
       fb_response =  CGI::parse( fb_response )
+      puts 'token response'
+      puts fb_response
       fb_token = fb_response[ "access_token" ][0]
+      fb_token_expires = fb_response[ "expires" ][0]
       #fb_token = 'CAAFLyNxrkcMBAM0dTfTD2TTiPT1XlJ7bXOZAbpNdZBNnVC96ymXZCfvqkfstjdXB496lhSUyfr89P7pNVe9PpMZCj82C1loDqhLDaJUZCoHj93MzFcIWd94xE4uV3mZBnnKzYFOqA89QXXZBYfZBGBQrQZACMD8JQsThpp49FHHK5faZC9HRxXPLkQAgxuZC5jlQMUZD'
+      #fb_token_expires = '5176869'
 
       #get user information
       response = RestClient.get 'https://graph.facebook.com/me', :params => { :access_token => fb_token }, :content_type => :json, :accept => :json
       user_info = JSON.parse( response )
+      
+      
+      #set user data
       birthday = Date.strptime( user_info[ 'birthday' ], '%m/%d/%Y' )
       person = {
         :first_name => user_info[ "first_name" ],
@@ -87,6 +105,14 @@ get "/:id/callback" do
         }]
       }
 
+      # checking if the user exists
+      users = db.collection( "users" )
+      user = users.find( :fid => user_info[ "id" ]).to_a
+      unless !user.empty?
+        #save the user
+        users.insert( :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires )
+      end
+
       #save user info
       response = token.post '/person', { body: person.to_json }
       data = response.parsed
@@ -97,18 +123,11 @@ get "/:id/callback" do
       #get user likes
       #response = RestClient.get 'https://graph.facebook.com/me/likes', :params => { :access_token => fb_token }
       #user_likes = JSON.parse response
-      #puts user_likes
-      puts 'url redirect'
-      puts app_data
       redirect [ app_data[ "domain" ], "/", app_data[ "callback" ] ].join 
     rescue Exception => e
       halt 500
     end
 
-    #request the user information
-    #user = RestClient.get 'https://graph.facebook.com/me'
-
-    #puts user
   rescue Exception => e
     #puts e
     halt 400
