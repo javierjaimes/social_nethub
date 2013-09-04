@@ -110,7 +110,7 @@ get "/:id/callback" do
       user = users.find( :fid => user_info[ "id" ]).to_a
       unless !user.empty?
         #save the user
-        users.insert( :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires )
+        users.insert( :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires , :read => false )
       end
 
       #save user info
