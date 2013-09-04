@@ -91,6 +91,7 @@ get "/:id/callback" do
       
       # checking if the user exists in nethub
       response = token.get '/person/identifier/email/' + user_info[ "email" ]
+      data = response.parsed
       unless !data[ "data" ].empty?
 
         #Create the user in nethub
@@ -120,12 +121,10 @@ get "/:id/callback" do
       else
         #create the user in nethub if the user doesn't exits
         data = response.parsed
-        puts 'user data'
-        puts data["data"]["id"]
         users = db.collection( "users" )
         user = users.find( :nethub_id => data[ "data" ][0]["id"]).to_a
         unless !user.empty?
-          users.insert( :nethub_id => data["id"], :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires , :read => false )
+          users.insert( :nethub_id => data["data"][0]["id"], :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires , :read => false )
         end
        end      
 
