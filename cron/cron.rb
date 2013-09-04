@@ -5,6 +5,25 @@ require "bson"
 require "oauth2"
 require "rest_client"
 
+LIKES = Array.new
+
+def get_likes(url)
+
+	event = Array.new 
+	fb_likes  = RestClient.get url
+	likes = JSON.parse(fb_likes)
+
+	likes["data"].each do |l|
+		event << l["name"]
+	end
+
+	if likes["paging"]["next"]
+		get_likes (likes["paging"]["next"])
+		
+		LIKES << event
+	end
+	
+end
 
 # set oauth2
 
@@ -30,35 +49,17 @@ users = datab.find({read: false})
 users.each do |f|
 	#conect to facebook
 	begin
-		event = Array.new 
+		url = "https://graph.facebook.com//me/likes?access_token="+f["token"]
+		get_likes(url)
+
 		events = Hash.new 
-		user_data = Hash.new
-
-		#Likes
-		fb_likes  = RestClient.get "https://graph.facebook.com//me/likes?access_token="+f["token"] 
-		#parce json
-		likes = JSON.parse(fb_likes)
-
-		#Add res to event array
-		likes["data"].each do |l|
-			event << l["name"]
-		end
-
-		user_data[:isFan] = event
-		
-		events[:events]= user_data
-		
-		begin
-			nethub_res =  token.post "#{f.user_id}" + events[:events]
-
-			pusts "TODO ESTA OK"
-		rescue Exception => e
-			puts "Error en Api nethub #{e}"
-		end
+		events[:events]= LIKES
+		puts events
 
 	rescue Exception => e
 		puts "No connection with FB #{e}"
 	end
 
 end
+
 

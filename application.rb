@@ -78,11 +78,8 @@ get "/:id/callback" do
       code = params[ :code ]
 
       fb_response = RestClient.get "https://graph.facebook.com/oauth/access_token", :params => { :client_id => client_id, :redirect_uri => redirect_uri, :client_secret => client_secret, :code => code }
-      puts 'token response'
-      puts fb_response
       fb_response =  CGI::parse( fb_response )
-      puts 'token response'
-      puts fb_response
+      
       fb_token = fb_response[ "access_token" ][0]
       fb_token_expires = fb_response[ "expires" ][0]
       #fb_token = 'CAAFLyNxrkcMBAM0dTfTD2TTiPT1XlJ7bXOZAbpNdZBNnVC96ymXZCfvqkfstjdXB496lhSUyfr89P7pNVe9PpMZCj82C1loDqhLDaJUZCoHj93MzFcIWd94xE4uV3mZBnnKzYFOqA89QXXZBYfZBGBQrQZACMD8JQsThpp49FHHK5faZC9HRxXPLkQAgxuZC5jlQMUZD'
@@ -92,37 +89,46 @@ get "/:id/callback" do
       response = RestClient.get 'https://graph.facebook.com/me', :params => { :access_token => fb_token }, :content_type => :json, :accept => :json
       user_info = JSON.parse( response )
       
-      
-      #set user data
-      birthday = Date.strptime( user_info[ 'birthday' ], '%m/%d/%Y' )
-      person = {
-        :first_name => user_info[ "first_name" ],
-        :last_name => user_info[ "last_name" ],
-        :gender => user_info[ "gender" ],
-        :birthday => birthday.strftime( '%m-%d-%Y' ),
-        :identifiers => [{
-          :email => user_info[ "email" ]
-        }]
-      }
+      # checking if the user exists in nethub
+      response = token.get '/person/identifier/email/' + user_info[ "email" ]
+      unless !data[ "data" ].empty?
 
-      # checking if the user exists
-      users = db.collection( "users" )
-      user = users.find( :fid => user_info[ "id" ]).to_a
-      unless !user.empty?
-        #save the user
-        users.insert( :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires , :read => false )
-      end
+        #Create the user in nethub
+        birthday = Date.strptime( user_info[ 'birthday' ], '%m/%d/%Y' )
+        person = {
+          :first_name => user_info[ "first_name" ],
+          :last_name => user_info[ "last_name" ],
+          :gender => user_info[ "gender" ],
+          :birthday => birthday.strftime( '%m-%d-%Y' ),
+          :identifiers => [{
+            :email => user_info[ "email" ]
+          }]
+        }
+        response = token.post '/person', { body: person.to_json }
+        data = response.parsed
+        unless data[ "success" ]
+          halt 400
+        end
 
-      #save user info
-      response = token.post '/person', { body: person.to_json }
-      data = response.parsed
-      unless data[ "success" ]
-        halt 400
-      end
+        #create the user in social
+        users = db.collection( "users" )
+        user = users.find( :fid => user_info[ "id" ]).to_a
+        unless !user.empty?
+          users.insert( :nethub_id => data["id"], :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires , :read => false )
+        end
 
-      #get user likes
-      #response = RestClient.get 'https://graph.facebook.com/me/likes', :params => { :access_token => fb_token }
-      #user_likes = JSON.parse response
+      else
+        #create the user in nethub if the user doesn't exits
+        data = response.parsed
+        puts 'user data'
+        puts data["data"]["id"]
+        users = db.collection( "users" )
+        user = users.find( :nethub_id => data[ "data" ][0]["id"]).to_a
+        unless !user.empty?
+          users.insert( :nethub_id => data["id"], :fid => user_info[ "id" ], :token => fb_token, :expires => fb_token_expires , :read => false )
+        end
+       end      
+
       redirect [ app_data[ "domain" ], "/", app_data[ "callback" ] ].join 
     rescue Exception => e
       halt 500
